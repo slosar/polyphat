@@ -1,0 +1,8 @@
+GCC=gcc
+all: test.out
+
+test.out: test.c polyphat_inc.h
+	$(GCC) -Ofast -fopenmp -std=c11 test.c -o test.out -lm -lfftw3f
+
+clean:
+	rm *.out 

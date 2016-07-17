@@ -25,6 +25,17 @@ float* _cuda_filter_;
 float* _cuda_sample_;
 float* _cuda_output_;
 
+float* polyphase_alloc_buffer(int size) {
+  cudaError_t err = cudaSuccess;
+  float *p;     
+  err=cudaHostAlloc(&p, size*sizeof(float),
+                            cudaHostAllocDefault);
+  if (err != cudaSuccess) {
+        fprintf(stderr, "Failed to allocate host buffer  vector (error code %s)!\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
+return p;
+}
 
 void cuda_alloc(float *filter) {
   cudaError_t err = cudaSuccess;
@@ -81,9 +92,11 @@ void cuda_exec(float*sam, float* out) {
   int threadsPerBlock = 256;
   int blocksPerGrid =_PPNS_ / threadsPerBlock;
   
+#ifndef NO_WORK_JUST_TRANSFER
   polyphase_do<<<blocksPerGrid, threadsPerBlock>>>(_cuda_sample_, _cuda_filter_, _cuda_output_);
   err = cudaGetLastError();
-  if (err != cudaSuccess) {
+#endif
+if (err != cudaSuccess) {
     fprintf(stderr, "Failed to launch cuda kernel (error code %s)!\n", cudaGetErrorString(err));
     exit(EXIT_FAILURE);
   }

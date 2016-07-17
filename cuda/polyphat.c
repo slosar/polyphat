@@ -34,6 +34,7 @@ float _filter_[_PPNTOT_];
 
 void polyphase_charge() {
   _fft_input_ = fftwf_malloc(sizeof(float) * _PPNS_);
+  //_fft_input_ = polyphase_alloc_buffer(_PPNS_);
   _output_ = fftwf_malloc(sizeof(fftwf_complex) * _PPNF_);
   _plan_=fftwf_plan_dft_r2c_1d(_PPNS_, _fft_input_, _output_,FFTW_MEASURE);
   
@@ -57,7 +58,9 @@ void polyphase_release() {
 
 void polyPhase_cuda(float *sam, float *spec) {
   cuda_exec(sam,_fft_input_);
+#ifndef NO_WORK_JUST_TRANSFER_
   fftwf_execute(_plan_);
+#endif
   for (unsigned int i=0;i<_PPNF_;i++) {
     spec[i]=_output_[i][0]*_output_[i][0]+_output_[i][1]*_output_[i][1];
   }

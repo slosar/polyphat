@@ -10,12 +10,12 @@
 #define DO1 1
 #define DOOUT 0
 #define CLOCKP  1000000000L;
-#define NTEST 30000
+#define NTEST (400000000/_PPNTOT_)
 //#20000
 
 int main() {
   printf("Allocating and sampling\n");
-  float sam[_PPNTOT_];
+  float* sam=polyphase_alloc_buffer(_PPNTOT_);
   float frq[_PPNF_], pwr[_PPNF_];
   double dt=1.0/2.5e9; /*2.5 GSample/s;*/
   for (float f=1.; f<1215.; f+=101.) {
@@ -46,7 +46,8 @@ int main() {
       + (double)( requestEnd.tv_nsec - requestStart.tv_nsec )
       / CLOCKP;
     accum/=NTEST;
-    printf( "Time: %g, rate %g MS/s for %i %i XX\n", accum, _PPNTOT_/accum/1e6,_PPNS_, _PPNC_);
+    printf( "Time: %g, rate %g MS/s for %i %i over %i tests. XX\n", accum,
+	    _PPNTOT_/accum/1e6,_PPNS_, _PPNC_,NTEST);
   
     if (DOOUT) {
       printf ("Output\n");

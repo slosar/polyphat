@@ -1,0 +1,24 @@
+GCC=/usr/bin/gcc-4.8
+## on crappy cards
+NVCC=/usr/local/cuda/bin/nvcc -ccbin=$(GCC) -arch=compute_12 -code=compute_12 -D_FORCE_INLINES
+## on better cards
+## NVCC=/usr/local/cuda/bin/nvcc 
+
+FFTWLINK=-lfftw3f
+
+all: test.out
+
+test.o: test.c
+	$(GCC) -Ofast -std=c99 -c test.c
+
+polyphat.o: polyphat.c
+	$(GCC) -Ofast -std=c99 -c polyphat.c
+
+polyphat_cuda.o: polyphat_cuda.cu
+	$(NVCC)  -O3 -c polyphat_cuda.cu
+
+test.out: test.o polyphat.o polyphat_cuda.o
+	$(NVCC) -o test.out test.o polyphat.o polyphat_cuda.o -lm $(FFTWLINK)
+
+clean:
+	rm *.o

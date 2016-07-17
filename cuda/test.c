@@ -10,7 +10,7 @@
 #define DO1 1
 #define DOOUT 0
 #define CLOCKP  1000000000L;
-#define NTEST 3000
+#define NTEST 30000
 //#20000
 
 int main() {

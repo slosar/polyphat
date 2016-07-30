@@ -2,6 +2,8 @@
 # Settings mak include things that you might need to make it work,
 # eg gcc and NVCC settings
 #
+GCC=gcc
+NVCC=nvcc
 -include settings.mak
 
 

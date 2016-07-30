@@ -1,7 +1,9 @@
 #
 # Settings mak include things that you might need to make it work,
-# eg gcc and NVCC settings
+# eg gcc and NVCC settings, if you want to override
 #
+GCC=gcc
+NVCC=nvcc 
 -include settings.mak
 
 

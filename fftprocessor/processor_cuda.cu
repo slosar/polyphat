@@ -31,22 +31,23 @@ uint8_t* alloc_sample_buffer() {
 }
 
 
+void print_timing (cudaEvent_t* start, cudaEvent_t* stop, char* what) {
+  float gpu_time;
+  CHK(cudaEventElapsedTime(&gpu_time, *start, *stop));
+  printf ("Timing %s : %fms \n",what, gpu_time);
+}
 
+
+#define FLOATIZE_X 8
 /**
  * CUDA Kernel byte->float
  *
  */
-__global__ void floatize(uint8_t *sample, float* fsample)  {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-    if (i<BUFFER_SIZE) fsample[i]=float(sample[i]-128);
+__global__ void floatize(uint8_t* sample,float* fsample)  {
+    int i = FLOATIZE_X*(blockDim.x * blockIdx.x + threadIdx.x);
+    for (int j=0; j<FLOATIZE_X; j++) fsample[i+j]=float(sample[i+j]-128);
 }
 
-
-void print_timing (cudaEvent_t start, cudaEvent_t stop, char* what) {
-  float gpu_time;
-  cudaEventElapsedTime(&gpu_time, start, stop);
-  printf ("Timing %s : %fms ",what, gpu_time);
-}
 
 
 
@@ -65,17 +66,37 @@ void cuda_test(uint8_t *buf) {
 
   cudaEventRecord(tstart, 0);
   // copy to device
-  cudaMemcpy(cbuf,buf, BUFFER_SIZE, cudaMemcpyHostToDevice);
-  // floatize
+  CHK(cudaMemcpy(cbuf,buf, BUFFER_SIZE, cudaMemcpyHostToDevice));
+
   cudaEventRecord(tcpy, 0);
-
-  int threadsPerBlock = 256;
-  int blocksPerGrid = BUFFER_SIZE / threadsPerBlock;
   
-  floatize<<<blocksPerGrid, threadsPerBlock>>>(cbuf, cfbuf);
-  CHK(cudaGetLastError());
+  // floatize
+  int threadsPerBlock = 1024;
+  int blocksPerGrid = BUFFER_SIZE / threadsPerBlock/FLOATIZE_X;
+  floatize<<<blocksPerGrid, threadsPerBlock>>>(cbuf,cfbuf);
   cudaEventRecord(tfloatize, 0);
+  CHK(cudaGetLastError());
+  
+  //
 
+
+
+  cudaThreadSynchronize();
+  print_timing(&tstart,&tcpy,"MEM CPY");
+  print_timing(&tcpy,&tfloatize,"FLOATIZE");
 
 }
 
+
+void ztest() {
+  uint8_t *cbuf;
+  CHK(cudaMalloc(&cbuf,BUFFER_SIZE));
+  // floatize
+  int threadsPerBlock = 1024;
+  int blocksPerGrid = 32768;
+  int Nth=
+  printf ("%i %i",threadsPerBlock, blocksPerGrid);
+  //  floatize<<<blocksPerGrid, threadsPerBlock>>>(cbuf);
+  CHK(cudaGetLastError());
+
+}

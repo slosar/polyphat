@@ -1,8 +1,9 @@
-GCC=/usr/bin/gcc-4.8
-## on crappy cards
-NVCC=/usr/local/cuda/bin/nvcc -ccbin=$(GCC) -arch=compute_12 -code=compute_12 -D_FORCE_INLINES
-## on better cards
-## NVCC=/usr/local/cuda/bin/nvcc 
+#
+# Settings mak include things that you might need to make it work,
+# eg gcc and NVCC settings
+#
+-include settings.mak
+
 
 FFTWLINK=-lfftw3f
 

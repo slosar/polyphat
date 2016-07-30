@@ -2,7 +2,9 @@
 #include <memory.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <cufft.h>
 #include "settings.h"
+
 
 extern "C" {
 #include "processor_cuda.h"
@@ -43,7 +45,7 @@ void print_timing (cudaEvent_t* start, cudaEvent_t* stop, char* what) {
  * CUDA Kernel byte->float
  *
  */
-__global__ void floatize(uint8_t* sample,float* fsample)  {
+__global__ void floatize(uint8_t* sample,cufftReal* fsample)  {
     int i = FLOATIZE_X*(blockDim.x * blockIdx.x + threadIdx.x);
     for (int j=0; j<FLOATIZE_X; j++) fsample[i+j]=float(sample[i+j]-128);
 }
@@ -56,13 +58,32 @@ void cuda_test(uint8_t *buf) {
   // cuda buffer and float buffer
   uint8_t *cbuf;
   CHK(cudaMalloc(&cbuf,BUFFER_SIZE));
-  float *cfbuf;
-  CHK(cudaMalloc(&cfbuf,BUFFER_SIZE*sizeof(float)));
+  cufftReal *cfbuf;
+  CHK(cudaMalloc(&cfbuf,BUFFER_SIZE*sizeof(cufftReal)));
+  cufftComplex *ffts;
+  CHK(cudaMalloc(&ffts,TRANSFORM_SIZE*NUM_FFT*sizeof(cufftComplex)));
 
-  cudaEvent_t tstart, tcpy,tfloatize;
+  cufftHandle plan;
+  int oembed=TRANSFORM_SIZE*NUM_FFT+1;
+  int fftsize=FFT_SIZE;
+  int status=cufftPlanMany(&plan, 1, &fftsize, NULL, 0, 0, 
+        NULL, TRANSFORM_SIZE,1, CUFFT_R2C, NUM_FFT);
+  if (status!=CUFFT_SUCCESS) {
+       printf ("Plan failed:");
+       if (status==CUFFT_ALLOC_FAILED) printf("CUFFT_ALLOC_FAILED");
+       if (status==CUFFT_INVALID_VALUE) printf ("CUFFT_INVALID_VALUE");
+       if (status==CUFFT_INTERNAL_ERROR) printf ("CUFFT_INTERNAL_ERROR");
+       if (status==CUFFT_SETUP_FAILED) printf ("CUFFT_SETUP_FAILED");
+       if (status==CUFFT_INVALID_SIZE) printf ("CUFFT_INVALID_SIZE");
+       printf("\n");
+       exit(1);
+  }
+
+  cudaEvent_t tstart, tcpy,tfloatize,tfft;
   CHK(cudaEventCreate(&tstart));
   CHK(cudaEventCreate(&tcpy));
   CHK(cudaEventCreate(&tfloatize));
+  CHK(cudaEventCreate(&tfft));
 
   cudaEventRecord(tstart, 0);
   // copy to device
@@ -77,13 +98,17 @@ void cuda_test(uint8_t *buf) {
   cudaEventRecord(tfloatize, 0);
   CHK(cudaGetLastError());
   
-  //
-
-
+  status=cufftExecR2C(plan, cfbuf, ffts);
+  cudaEventRecord(tfft, 0);
+  if (status!=CUFFT_SUCCESS) {
+     printf("CUFFT FAILED\n");
+     exit(1);
+  }    
 
   cudaThreadSynchronize();
   print_timing(&tstart,&tcpy,"MEM CPY");
   print_timing(&tcpy,&tfloatize,"FLOATIZE");
+  print_timing(&tfloatize,&tfft,"FFT");
 
 }
 

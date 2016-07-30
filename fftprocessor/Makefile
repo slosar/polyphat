@@ -18,10 +18,10 @@ processor_cuda.o: processor_cuda.cu processor_cuda.h settings.h
 	$(NVCC)  -O3 -c -o $@ $<
 
 make_test_buffers.out: make_test_buffers.o generator.o processor_cuda.o
-	$(NVCC) -o make_test_buffers.out make_test_buffers.o generator.o processor_cuda.o -lm 
+	$(NVCC) -o make_test_buffers.out make_test_buffers.o generator.o processor_cuda.o -lm -lcufft
 
 test.out: test.o generator.o processor_cuda.o
-	$(NVCC) -o test.out test.o generator.o processor_cuda.o -lm 
+	$(NVCC) -o test.out test.o generator.o processor_cuda.o -lm -lcufft
 
 clean:
 	rm *.o

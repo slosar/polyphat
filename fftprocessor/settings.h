@@ -8,11 +8,12 @@
 /* SIZE OF FFT, 
 we aim at 1ms = 2.7MSamples, 
 closest is 2**21, corresponding to 0.8 ms */
-#define FFT_SIZE 2097152
+#define FFT_SIZE (2097152)
+#define TRANSFORM_SIZE (FFT_SIZE/2+1)
 
 /* Size of a chunk we process in one go
 At 2.7 MS, this 99.4 ms*/
-#define NUM_FFT 128
+#define NUM_FFT (128)
 #define BUFFER_SIZE (NUM_FFT*FFT_SIZE)
 
 #endif

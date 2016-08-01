@@ -1,5 +1,9 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
+#include <math.h>
+
+/*version*/
+#define VERSION "0.1 PROTO"
 
 /* Basic parameters of ADC */
 #define SAMPLING_RATE 2.7e9
@@ -24,10 +28,9 @@ At 2.7 MS, this 99.4 ms*/
 /* We average over this many FFT bins */
 #define NUAVG 16384
 /* and we get this many bins */
-#define NUM_NUBINS ((int(NUMAX-NUMIN)*1e6/DELTA_NU/NUAVG)+1)
 
 void print_settings();
-
+inline int num_nubins() { return (floor((NUMAX-NUMIN)*1e6/DELTA_NU/NUAVG)+1); }
 
 #endif
 

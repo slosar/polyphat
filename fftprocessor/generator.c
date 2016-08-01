@@ -1,5 +1,4 @@
 
-
 /* Generates white noise */
 #include "generator.h"
 #include "settings.h"

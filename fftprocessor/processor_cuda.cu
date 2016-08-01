@@ -35,7 +35,7 @@ uint8_t* alloc_sample_buffer() {
 float* alloc_power() {
   float *p;
   /* size of uint8_t is one, explicityly */
-  CHK(cudaHostAlloc(&p, NUM_NUBINS*sizeof(float), cudaHostAllocDefault));
+  CHK(cudaHostAlloc(&p, num_nubins()*sizeof(float), cudaHostAllocDefault));
   return p;
 }
 
@@ -113,7 +113,7 @@ void cuda_test(uint8_t *buf, float* freq, float* power) {
   cufftComplex *ffts;
   CHK(cudaMalloc(&ffts,TRANSFORM_SIZE*NUM_FFT*sizeof(cufftComplex)));
   int istart=int(NUMIN*1e6/DELTA_NU)-NUAVG/2;
-  for (size_t i=0;i<NUM_NUBINS;i++) freq[i]=(istart+i*NUAVG)/DELTA_NU/1e6;
+  for (size_t i=0;i<num_nubins();i++) freq[i]=(istart+i*NUAVG)/DELTA_NU/1e6;
 
     
   cufftHandle plan;
@@ -160,7 +160,7 @@ void cuda_test(uint8_t *buf, float* freq, float* power) {
   }    
 
   // now launch the final kernel
-  ps_reduce<<<NUM_NUBINS,threadsPerBlock,threadsPerBlock>>>(ffts,power, istart);
+  ps_reduce<<<num_nubins(),threadsPerBlock,threadsPerBlock>>>(ffts,power, istart);
   cudaEventRecord(treduce, 0);
 
   cudaThreadSynchronize();

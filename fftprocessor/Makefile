@@ -13,10 +13,10 @@ OBJS=$(SOURCES:.c=.o) $(CUDASOURCES:.cu=.o)
 
 all: make_test_buffers.out test.out
 
-.c.o: settings.h
+%.o: %.c settings.h
 	$(GCC) -Ofast -std=c99 -c -o $@ $<
 
-processor_cuda.o: processor_cuda.cu processor_cuda.h settings.h
+%.o: %.cu settings.h
 	$(NVCC)  -O3 -c -o $@ $<
 
 libfftproc.a: $(OBJS)

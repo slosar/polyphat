@@ -103,7 +103,7 @@ __global__ void ps_reduce(cufftComplex *ffts, float* output_ps, size_t istart) {
   
 
 
-void cuda_test(uint8_t *buf, float* freq, float* power) {
+void cuda_test(uint8_t *buf, float* freq, float*power) {
 
   // cuda buffer and float buffer
   uint8_t *cbuf;
@@ -114,8 +114,11 @@ void cuda_test(uint8_t *buf, float* freq, float* power) {
   CHK(cudaMalloc(&ffts,TRANSFORM_SIZE*NUM_FFT*sizeof(cufftComplex)));
   int istart=int(NUMIN*1e6/DELTA_NU)-NUAVG/2;
   for (size_t i=0;i<num_nubins();i++) freq[i]=(istart+i*NUAVG)/DELTA_NU/1e6;
-
-    
+  // device power
+  float *cpower;
+  CHK(cudaMalloc(&cpower,num_nubins()*sizeof(float)));
+  
+  
   cufftHandle plan;
   //int oembed=TRANSFORM_SIZE*NUM_FFT+1;
   int fftsize=FFT_SIZE;
@@ -132,12 +135,13 @@ void cuda_test(uint8_t *buf, float* freq, float* power) {
        exit(1);
   }
 
-  cudaEvent_t tstart, tcpy,tfloatize,tfft,treduce;
+  cudaEvent_t tstart, tcpy,tfloatize,tfft,treduce,tcopyback;
   CHK(cudaEventCreate(&tstart));
   CHK(cudaEventCreate(&tcpy));
   CHK(cudaEventCreate(&tfloatize));
   CHK(cudaEventCreate(&tfft));
   CHK(cudaEventCreate(&treduce));
+  CHK(cudaEventCreate(&tcopyback));
 
   cudaEventRecord(tstart, 0);
   // copy to device
@@ -160,14 +164,47 @@ void cuda_test(uint8_t *buf, float* freq, float* power) {
   }    
 
   // now launch the final kernel
-  ps_reduce<<<num_nubins(),threadsPerBlock,threadsPerBlock>>>(ffts,power, istart);
+  ps_reduce<<<num_nubins(),threadsPerBlock,threadsPerBlock>>>(ffts,cpower, istart);
   cudaEventRecord(treduce, 0);
+  // copy results over
+  CHK(cudaMemcpy(power,cpower, num_nubins()*sizeof(float), cudaMemcpyDeviceToHost));
+  cudaEventRecord(tcopyback, 0);
 
+#ifdef DEBUGREDUCE
+  cufftComplex *hffts;
+  CHK(cudaMallocHost(&hffts,TRANSFORM_SIZE*NUM_FFT*sizeof(cufftComplex)));
+  CHK(cudaMemcpy(hffts,ffts, TRANSFORM_SIZE*NUM_FFT*sizeof(cufftComplex), cudaMemcpyDeviceToHost));
+  //now check first and last elements of the transform which should be real
+  for (size_t i=0;i<NUM_FFT;i++) {
+    cufftComplex f=hffts[i*TRANSFORM_SIZE];
+    cufftComplex l=hffts[(i+1)*TRANSFORM_SIZE-1];
+    printf ("%i first %f %f , last %f %f \n", (int)i, f.x,f.y,l.x,l.y);
+    //now do the powers
+    for (size_t i=0;i<num_nubins();i++) {
+      float pow=0;
+      for (size_t j=0;j<NUM_FFT;j++) {
+	for (size_t k=0;k<NUAVG;k++) {
+	  int pos=j*TRANSFORM_SIZE+istart+i*NUAVG+k;
+	  pow+=hffts[pos].x*hffts[pos].x+hffts[pos].y*hffts[pos].y;
+	}
+      }
+      printf ("power %i %f %f", (int)i,pow, power[i]);
+    }
+
+
+  }
+
+
+#endif
+  
+
+  
   cudaThreadSynchronize();
   print_timing(&tstart,&tcpy,"MEM CPY");
   print_timing(&tcpy,&tfloatize,"FLOATIZE");
   print_timing(&tfloatize,&tfft,"FFT");
   print_timing(&tfft,&treduce,"REDUCE");
+  print_timing(&tfft,&treduce,"COPYBACK");
 }
 
 

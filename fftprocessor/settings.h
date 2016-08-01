@@ -4,6 +4,7 @@
 
 /*version*/
 #define VERSION "0.1 PROTO"
+#define DEBUGREDUCE
 
 /* Basic parameters of ADC */
 #define SAMPLING_RATE 2.7e9

@@ -69,8 +69,9 @@ __global__ void ps_reduce(cufftComplex *ffts, float* output_ps, size_t istart) {
   int bl=blockIdx.x;
   int nth=blockDim.x;
   int bsize=NUAVG;
-  extern __shared__ float work[];
+  __shared__ float work[1024];
   assert (tid<bsize);
+
   //global pos
   size_t pos=istart+bl*bsize+tid;
   //chunk pos
@@ -78,6 +79,7 @@ __global__ void ps_reduce(cufftComplex *ffts, float* output_ps, size_t istart) {
   work[tid]=0;
   size_t chunk=0;
   while (chunk<NUM_FFT) {
+    assert (pos<NUM_FFT*TRANSFORM_SIZE);
     work[tid]+=ffts[pos].x*ffts[pos].x+ffts[pos].y*ffts[pos].y;
     if (cpos+nth<bsize) {
       cpos+=nth;
@@ -113,7 +115,7 @@ void cuda_test(uint8_t *buf, float* freq, float*power) {
   cufftComplex *ffts;
   CHK(cudaMalloc(&ffts,TRANSFORM_SIZE*NUM_FFT*sizeof(cufftComplex)));
   int istart=int(NUMIN*1e6/DELTA_NU)-NUAVG/2;
-  for (size_t i=0;i<num_nubins();i++) freq[i]=(istart+i*NUAVG)/DELTA_NU/1e6;
+  for (size_t i=0;i<num_nubins();i++) freq[i]=(istart+i*NUAVG)*DELTA_NU/1e6;
   // device power
   float *cpower;
   CHK(cudaMalloc(&cpower,num_nubins()*sizeof(float)));
@@ -164,11 +166,18 @@ void cuda_test(uint8_t *buf, float* freq, float*power) {
   }    
 
   // now launch the final kernel
-  ps_reduce<<<num_nubins(),threadsPerBlock,threadsPerBlock>>>(ffts,cpower, istart);
+  ps_reduce<<<num_nubins(),threadsPerBlock>>>(ffts,cpower, istart);
   cudaEventRecord(treduce, 0);
   // copy results over
   CHK(cudaMemcpy(power,cpower, num_nubins()*sizeof(float), cudaMemcpyDeviceToHost));
   cudaEventRecord(tcopyback, 0);
+
+  cudaThreadSynchronize();
+  print_timing(&tstart,&tcpy,"MEM CPY");
+  print_timing(&tcpy,&tfloatize,"FLOATIZE");
+  print_timing(&tfloatize,&tfft,"FFT");
+  print_timing(&tfft,&treduce,"REDUCE");
+  print_timing(&tfft,&treduce,"COPYBACK");
 
 #ifdef DEBUGREDUCE
   cufftComplex *hffts;
@@ -177,34 +186,26 @@ void cuda_test(uint8_t *buf, float* freq, float*power) {
   //now check first and last elements of the transform which should be real
   for (size_t i=0;i<NUM_FFT;i++) {
     cufftComplex f=hffts[i*TRANSFORM_SIZE];
+    cufftComplex s=hffts[i*TRANSFORM_SIZE+1];
+    cufftComplex ml=hffts[(i+1)*TRANSFORM_SIZE-2];
     cufftComplex l=hffts[(i+1)*TRANSFORM_SIZE-1];
-    printf ("%i first %f %f , last %f %f \n", (int)i, f.x,f.y,l.x,l.y);
-    //now do the powers
-    for (size_t i=0;i<num_nubins();i++) {
-      float pow=0;
-      for (size_t j=0;j<NUM_FFT;j++) {
-	for (size_t k=0;k<NUAVG;k++) {
-	  int pos=j*TRANSFORM_SIZE+istart+i*NUAVG+k;
-	  pow+=hffts[pos].x*hffts[pos].x+hffts[pos].y*hffts[pos].y;
-	}
+    printf ("%i first %f %f , second %f %f, lastbyone %f %f, last %f %f \n",
+	    (int)i, f.x,f.y,s.x,s.y,ml.x,ml.y, l.x,l.y);
+  }
+  //now do the powers
+  for (size_t i=0;i<num_nubins();i++) {
+    float pow=0;
+    for (size_t j=0;j<NUM_FFT;j++) {
+      for (size_t k=0;k<NUAVG;k++) {
+        int pos=j*TRANSFORM_SIZE+istart+i*NUAVG+k;
+	assert(pos<TRANSFORM_SIZE*NUM_FFT);
+	pow+=hffts[pos].x*hffts[pos].x+hffts[pos].y*hffts[pos].y;
       }
-      printf ("power %i %f %f", (int)i,pow, power[i]);
     }
-
-
+    printf ("power %i %fMHz %f %f\n", (int)i,freq[i], pow, power[i]);
   }
 
-
 #endif
-  
-
-  
-  cudaThreadSynchronize();
-  print_timing(&tstart,&tcpy,"MEM CPY");
-  print_timing(&tcpy,&tfloatize,"FLOATIZE");
-  print_timing(&tfloatize,&tfft,"FFT");
-  print_timing(&tfft,&treduce,"REDUCE");
-  print_timing(&tfft,&treduce,"COPYBACK");
 }
 
 

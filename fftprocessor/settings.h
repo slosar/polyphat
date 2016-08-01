@@ -13,13 +13,13 @@
 /* SIZE OF FFT, 
 we aim at 1ms = 2.7MSamples, 
 closest is 2**21, corresponding to 0.8 ms */
-#define FFT_SIZE (2097152*128)
+#define FFT_SIZE (268435456/128)
 #define TRANSFORM_SIZE (FFT_SIZE/2+1)
 
 /* Size of a chunk we process in one go
 At 2.7 MS, this 99.4 ms*/
-#define NUM_FFT (1)
-#define BUFFER_SIZE (NUM_FFT*FFT_SIZE)
+#define BUFFER_SIZE (268435456)
+#define NUM_FFT (BUFFER_SIZE/FFT_SIZE)
 
 #define DELTA_NU (1./(DELTA_T*BUFFER_SIZE))
 
@@ -27,7 +27,7 @@ At 2.7 MS, this 99.4 ms*/
 #define NUMIN 600.0
 #define NUMAX 1300.0
 /* We average over this many FFT bins */
-#define NUAVG 16384
+#define NUAVG (16384/NUM_FFT)
 /* and we get this many bins */
 
 void print_settings();

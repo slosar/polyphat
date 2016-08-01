@@ -17,8 +17,8 @@ int main() {
   uint8_t *buf2=malloc(BUFFER_SIZE); /*alloc_sample_buffer();*/
   generate_white(buf1,10.,123);
   write_bin (buf1,"white.bin");
-  generate_tone(buf2,100.,50.,0.,123);
-  write_bin (buf2,"100MHz.bin");
+  generate_tone(buf2,800.,50.,0.,123);
+  write_bin (buf2,"800MHz.bin");
   for (size_t i=0;i<100;i++) {
     printf ("%i %i %i\n", (int)i,buf1[i],buf2[i]);
   }

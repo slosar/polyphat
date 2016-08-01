@@ -20,7 +20,7 @@ int main() {
   uint8_t *buf2=alloc_sample_buffer();
   float* freq=alloc_power();
   float* power=alloc_power();
-  read_bin(buf1,"white.bin");
+  read_bin(buf1,"800MHz.bin");
   //read_bin(buf2,"100MHz.bin");
   printf ("Launching cuda_test\n");
   cuda_test(buf1,freq,power);

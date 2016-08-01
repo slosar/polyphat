@@ -10,6 +10,7 @@ void print_settings() {
   printf ("BUFFER_SIZE: %i = %g ms\n",BUFFER_SIZE,BUFFER_SIZE*DELTA_T/1e-3);
   printf ("NUMMIN/MAX: %f %f \n",NUMIN,NUMAX);
   printf ("NUM_NUBINS: %i\n", num_nubins());
+  printf ("NUAVG: %i\n", NUAVG);
   printf ("******************************************\n");
   
 }

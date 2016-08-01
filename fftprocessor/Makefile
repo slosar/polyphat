@@ -5,9 +5,11 @@
 GCC=gcc
 NVCC=nvcc 
 -include settings.mak
-
-
 FFTWLINK=-lfftw3f
+
+SOURCES=generator.c processor_cuda.c settings.c
+CUDASOURCES=processor_cuda.cu
+OBJS=$(SOURCES:.c=.o) $(CUDASOURCES:.cu=.o) 
 
 all: make_test_buffers.out test.out
 
@@ -17,11 +19,14 @@ all: make_test_buffers.out test.out
 processor_cuda.o: processor_cuda.cu processor_cuda.h settings.h
 	$(NVCC)  -O3 -c -o $@ $<
 
-make_test_buffers.out: make_test_buffers.o generator.o processor_cuda.o
-	$(NVCC) -o make_test_buffers.out make_test_buffers.o generator.o processor_cuda.o -lm -lcufft
+libfftproc.a: $(OBJS)
+	ar rcs libfftproc.a $(OBJS)
+
+make_test_buffers.out: make_test_buffers.o libfftproc.a
+	$(NVCC) -o make_test_buffers.out make_test_buffers.o -L. -lfftproc -lm -lcufft
 
 test.out: test.o generator.o processor_cuda.o
-	$(NVCC) -o test.out test.o generator.o processor_cuda.o -lm -lcufft
+	$(NVCC) -o test.out test.o -L. -lfftproc -lm -lcufft
 
 clean:
 	rm *.o

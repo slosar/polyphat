@@ -11,13 +11,18 @@
 #include "inttypes.h"
 
 
+
 int main() {
+  print_settings();
+  
   printf("Reading files\n");
-  uint8_t *buf1=malloc(BUFFER_SIZE); /*alloc_sample_buffer();*/
-  uint8_t *buf2=malloc(BUFFER_SIZE); /*alloc_sample_buffer();*/
+  uint8_t *buf1=alloc_sample_buffer();
+  uint8_t *buf2=alloc_sample_buffer();
+  float* freq=alloc_power();
+  float* power=alloc_power();
   read_bin(buf1,"white.bin");
   //read_bin(buf2,"100MHz.bin");
   printf ("Launching cuda_test\n");
-  cuda_test(buf1);
+  cuda_test(buf1,freq,power);
   return 0;
 }

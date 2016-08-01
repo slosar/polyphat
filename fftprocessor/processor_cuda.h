@@ -3,7 +3,8 @@
 #include "stdint.h"
 #include "settings.h"
 uint8_t* alloc_sample_buffer();
-void cuda_test(uint8_t *buf);
+float* alloc_power();
+void cuda_test(uint8_t *buf, float* freq, float* power);
 void ztest();
 
 #endif

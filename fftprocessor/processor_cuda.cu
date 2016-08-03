@@ -47,7 +47,6 @@ void print_timing (cudaEvent_t* start, cudaEvent_t* stop, const char* what) {
 }
 
 
-#define FLOATIZE_X 8
 /**
  * CUDA Kernel byte->float
  *
@@ -69,8 +68,7 @@ __global__ void ps_reduce(cufftComplex *ffts, float* output_ps, size_t istart) {
   int bl=blockIdx.x;
   int nth=blockDim.x;
   __shared__ float work[1024];
-  assert (tid<NUAVG);
-
+//  assert (tid<NUAVG);
   //global pos
   size_t pos=istart+bl*NUAVG+tid;
   //chunk pos
@@ -78,7 +76,7 @@ __global__ void ps_reduce(cufftComplex *ffts, float* output_ps, size_t istart) {
   work[tid]=0;
   size_t chunk=0;
   while (chunk<NUM_FFT) {
-    assert (pos<NUM_FFT*TRANSFORM_SIZE);
+//    assert (pos<NUM_FFT*TRANSFORM_SIZE);
     work[tid]+=ffts[pos].x*ffts[pos].x+ffts[pos].y*ffts[pos].y;
     if (cpos+nth<NUAVG) {
       cpos+=nth;
@@ -151,7 +149,7 @@ void cuda_test(uint8_t *buf, float* freq, float*power) {
   cudaEventRecord(tcpy, 0);
   
   // floatize
-  int threadsPerBlock = 1024;
+  int threadsPerBlock = THREADS_DEFAULT;
   int blocksPerGrid = BUFFER_SIZE / threadsPerBlock/FLOATIZE_X;
   floatize<<<blocksPerGrid, threadsPerBlock>>>(cbuf,cfbuf);
   cudaEventRecord(tfloatize, 0);

@@ -32,6 +32,10 @@ At 2.7 MS, this 99.4 ms*/
 #define NUAVG (16384/NUM_FFT)
 /* and we get this many bins */
 
+
+#define FLOATIZE_X 8
+#define THREADS_DEFAULT 1024
+
 void print_settings();
 inline int num_nubins() { return (floor((NUMAX-NUMIN)*1e6/DELTA_NU/NUAVG)+1); }
 

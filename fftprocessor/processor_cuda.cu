@@ -68,12 +68,11 @@ __global__ void ps_reduce(cufftComplex *ffts, float* output_ps, size_t istart) {
   int tid=threadIdx.x;
   int bl=blockIdx.x;
   int nth=blockDim.x;
-  int bsize=NUAVG;
   __shared__ float work[1024];
-  assert (tid<bsize);
+  assert (tid<NUAVG);
 
   //global pos
-  size_t pos=istart+bl*bsize+tid;
+  size_t pos=istart+bl*NUAVG+tid;
   //chunk pos
   size_t cpos=tid;
   work[tid]=0;
@@ -81,12 +80,12 @@ __global__ void ps_reduce(cufftComplex *ffts, float* output_ps, size_t istart) {
   while (chunk<NUM_FFT) {
     assert (pos<NUM_FFT*TRANSFORM_SIZE);
     work[tid]+=ffts[pos].x*ffts[pos].x+ffts[pos].y*ffts[pos].y;
-    if (cpos+nth<bsize) {
+    if (cpos+nth<NUAVG) {
       cpos+=nth;
       pos+=nth;
     } else {
       chunk++;
-      pos=istart+bl*bsize+tid+chunk*FFT_SIZE;
+      pos=chunk*TRANSFORM_SIZE+istart+bl*NUAVG+tid;
       cpos=tid;
     }
   }
@@ -165,8 +164,11 @@ void cuda_test(uint8_t *buf, float* freq, float*power) {
      exit(1);
   }    
 
+
   // now launch the final kernel
-  ps_reduce<<<num_nubins(),threadsPerBlock>>>(ffts,cpower, istart);
+  while (threadsPerBlock>NUAVG) threadsPerBlock/=2;
+  // ps_reduce<<<num_nubins(),threadsPerBlock>>>(ffts,cpower, istart);
+  ps_reduce<<<num_nubins(), threadsPerBlock>>>(ffts,cpower, istart);
   cudaEventRecord(treduce, 0);
   // copy results over
   CHK(cudaMemcpy(power,cpower, num_nubins()*sizeof(float), cudaMemcpyDeviceToHost));
@@ -198,7 +200,10 @@ void cuda_test(uint8_t *buf, float* freq, float*power) {
     for (size_t j=0;j<NUM_FFT;j++) {
       for (size_t k=0;k<NUAVG;k++) {
         int pos=j*TRANSFORM_SIZE+istart+i*NUAVG+k;
-	assert(pos<TRANSFORM_SIZE*NUM_FFT);
+	if (!(pos<TRANSFORM_SIZE*NUM_FFT)) {
+	  printf ("SHIT %i %i %i %i\n",NUM_FFT, TRANSFORM_SIZE, NUAVG, num_nubins());
+	  exit(1);
+	}
 	pow+=hffts[pos].x*hffts[pos].x+hffts[pos].y*hffts[pos].y;
       }
     }

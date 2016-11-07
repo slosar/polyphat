@@ -36,24 +36,33 @@ char* szTypeToName (int32 lCardType)
     }
 
 
+
+void printErrorDie(DIGICARD *card, const char* message) {
+      char szErrorTextBuffer[ERRORTEXTLEN];
+      spcm_dwGetErrorInfo_i32 (card->hCard, NULL, NULL, szErrorTextBuffer);
+      printf ("Digitizer card fatal error: %s\n",message);
+      printf ("Error Text: %s\n", szErrorTextBuffer);
+      digiCardCleanUp(card);
+      exit(1);
+}
+
+
 /*
 **************************************************************************
 Setup the digitizer card
 **************************************************************************
 */
 
+
 void digiCardInit (DIGICARD *card, SETTINGS *set) {
     // open card
 
-  printf ("\n\nInitilizing digitizer\n");
+  printf ("\n\nInitializing digitizer\n");
   printf ("=====================\n");
   card->hCard = spcm_hOpen ((char*)"/dev/spcm0");
-    if (!card->hCard) {
-        printf ("no digitizer card found...\n");
-        exit(1);
-    }
-
-    int32       lCardType, lSerialNumber, lFncType;
+  if (!card->hCard) printErrorDie(card,"Can't open digitizer card.");
+  
+  int32       lCardType, lSerialNumber, lFncType;
     // read type, function and sn and check for A/D card
     spcm_dwGetParam_i32 (card->hCard, SPC_PCITYP,         &lCardType);
     spcm_dwGetParam_i32 (card->hCard, SPC_PCISERIALNO,    &lSerialNumber);
@@ -95,7 +104,7 @@ void digiCardInit (DIGICARD *card, SETTINGS *set) {
     printf ("Allocating digitizer buffer...\n");
     /// now set the memory
     card->two_channel = (set->channel_mask==3);
-    card->lNotifySize = set->fft_buffer_size*(1+card->two_channel);
+    card->lNotifySize = set->fft_size*(1+card->two_channel);
     card->lBufferSize = card->lNotifySize*set->buf_mult;
     
     /// alocate buffer
@@ -120,33 +129,19 @@ float deltaT (timespec t1,timespec t2) {
 
 void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set) {
   // start everything
-  char        szErrorTextBuffer[ERRORTEXTLEN];
   uint32      dwError = spcm_dwSetParam_i32 (dc->hCard, SPC_M2CMD, M2CMD_CARD_START | M2CMD_CARD_ENABLETRIGGER | M2CMD_DATA_STARTDMA);
   int32       lStatus, lAvailUser, lPCPos, fill;
 
   // check for error
-  if (dwError != ERR_OK)
-    {
-      spcm_dwGetErrorInfo_i32 (dc->hCard, NULL, NULL, szErrorTextBuffer);
-      printf ("%s\n", szErrorTextBuffer);
-      digiCardCleanUp(dc);
-      exit(1);
-    }
-
+  if (dwError != ERR_OK) printErrorDie(dc,"Cannot start FIFO\n");
 
   struct timespec timeStart, timeNow;
   clock_gettime(CLOCK_REALTIME, &timeStart);
 
   while (1) {
-    if ((dwError = spcm_dwSetParam_i32 (dc->hCard, SPC_M2CMD, M2CMD_DATA_WAITDMA)) != ERR_OK)
-      {
-	if (dwError == ERR_TIMEOUT)
-	  printf ("DMA wait timeout\n");
-	else
-	  printf ("DMA wait error: %d\n", dwError);
-	digiCardCleanUp(dc);
-	exit(1);
-      }
+    dwError = spcm_dwSetParam_i32 (dc->hCard, SPC_M2CMD, M2CMD_DATA_WAITDMA);
+    if (dwError != ERR_OK)
+      printErrorDie (dc,"DMA wait fail\n");
 
     spcm_dwGetParam_i32 (dc->hCard, SPC_M2STATUS,             &lStatus);
     spcm_dwGetParam_i32 (dc->hCard, SPC_DATA_AVAIL_USER_LEN,  &lAvailUser);
@@ -171,14 +166,7 @@ void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set) {
   printf("Sending stop command\n");
   // send the stop command
   dwError = spcm_dwSetParam_i32 (dc->hCard, SPC_M2CMD, M2CMD_CARD_STOP | M2CMD_DATA_STOPDMA);
-  if (dwError != ERR_OK)
-    {
-      spcm_dwGetErrorInfo_i32 (dc->hCard, NULL, NULL, szErrorTextBuffer);
-      printf ("%s\n", szErrorTextBuffer);
-      digiCardCleanUp(dc);
-      exit(1);
-    }
-
+  if (dwError != ERR_OK) printErrorDie(dc,"Error stopping card.\n");
 }
 
 

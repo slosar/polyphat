@@ -24,8 +24,9 @@ void init_settings(SETTINGS *s, char* fname) {
     s->ADC_range=1000;
     s->ext_clock_mode=0;
     s->buf_mult=8;
-    s->n_cuda_streams=4;
+    s->cuda_streams=4;
     s->cuda_threads=1024;
+    s->simulate_digitizer=0;
 
     if (fname) {
          FILE *fi;
@@ -64,10 +65,14 @@ void init_settings(SETTINGS *s, char* fname) {
 	     s->ADC_range=atoi(s2);
 	   else if(!strcmp(s1,"ext_clock_mode="))
 	     s->ext_clock_mode=atoi(s2);
-	   else if(!strcmp(s1,"n_cuda_streams="))
-	     s->n_cuda_streams=atoi(s2);
+	   else if(!strcmp(s1,"cuda_streams="))
+	     s->cuda_streams=atoi(s2);
 	   else if(!strcmp(s1,"cuda_threads="))
 	     s->cuda_threads=atoi(s2);
+	   else if(!strcmp(s1,"simulate_digitizer="))
+	     s->simulate_digitizer=atoi(s2);
+	   else if(!strcmp(s1,"fft_avg="))
+	     s->fft_avg=atoi(s2);
 	   else {
 	     printf("Unknown parameter %s\n",s1);
 	     exit(1);
@@ -84,13 +89,14 @@ void print_settings(SETTINGS *s) {
   printf ("FFT buffer size: %i\n", s->fft_size);
   printf ("Notify size: %iMB\n", s->fft_size*(1+(s->channel_mask==3))/(1024*1024));
   printf ("FFT buffer size in ms: %5.3g \n", s->fft_size/s->sample_rate*1000.);
+  printf ("Simulate digitizer: %i \n", s->simulate_digitizer);
   printf ("Nu min: %5.3g MHz\n", s->nu_min/1e6);
   printf ("Nu max: %5.3g MHz\n", s->nu_max/1e6);
   printf ("FFT avg block: %i\n", s->fft_avg);
   printf ("Channel mask: %lu\n", s->channel_mask);
   printf ("ADC range: %imV\n", s->ADC_range);
   printf ("External clock mode: %i\n", s->ext_clock_mode);
-  printf ("GPU CUDA streams: %i\n", s->n_cuda_streams);
+  printf ("GPU CUDA streams: %i\n", s->cuda_streams);
   printf ("GPU CUDA threads: %i\n", s->cuda_threads);
   printf ("Buffer multiplier (size of ADC buffer in FFT buf size): %i\n", s->buf_mult);
   printf ("\n*********************************************************************\n");

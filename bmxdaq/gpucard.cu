@@ -69,7 +69,7 @@ void gpuCardInit (GPUCARD *gc, SETTINGS *set) {
        exit(1);
   }
   printf ("Setting up CUDA streams & events\n");
-  gc->nstreams=set->n_cuda_streams;
+  gc->nstreams=set->cuda_streams;
   if (gc->nstreams<1) {
     printf ("Cannot relly work with less than one stream.\n");
     exit(1);

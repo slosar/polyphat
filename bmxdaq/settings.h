@@ -11,6 +11,9 @@ struct SETTINGS {
   uint64_t channel_mask;  // channel bit mask 
   int32_t ADC_range; // in mV
   int ext_clock_mode; // 0 for internal, 1 for external
+
+  // simulate card
+  int simulate_digitizer;
   
   //
   uint32_t fft_size; // must be power of 2
@@ -19,8 +22,10 @@ struct SETTINGS {
   int buf_mult; // buffer multiplier, we allocate
                 //buf_mult*fft_size for transfer
   //
-  int n_cuda_streams; // number of cuda streams
+  int cuda_streams; // number of cuda streams
   int cuda_threads; // number of cuda threads
+
+
 };
 
 // Fixed defines

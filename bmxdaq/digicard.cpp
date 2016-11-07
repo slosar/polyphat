@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include <math.h>
 
 /*
 **************************************************************************
@@ -55,70 +55,97 @@ Setup the digitizer card
 
 
 void digiCardInit (DIGICARD *card, SETTINGS *set) {
-    // open card
+  // open card
 
   printf ("\n\nInitializing digitizer\n");
   printf ("=====================\n");
+
+  if (!set->simulate_digitizer) {
   card->hCard = spcm_hOpen ((char*)"/dev/spcm0");
   if (!card->hCard) printErrorDie(card,"Can't open digitizer card.");
   
   int32       lCardType, lSerialNumber, lFncType;
-    // read type, function and sn and check for A/D card
-    spcm_dwGetParam_i32 (card->hCard, SPC_PCITYP,         &lCardType);
-    spcm_dwGetParam_i32 (card->hCard, SPC_PCISERIALNO,    &lSerialNumber);
-    spcm_dwGetParam_i32 (card->hCard, SPC_FNCTYPE,        &lFncType);
+  // read type, function and sn and check for A/D card
+  spcm_dwGetParam_i32 (card->hCard, SPC_PCITYP,         &lCardType);
+  spcm_dwGetParam_i32 (card->hCard, SPC_PCISERIALNO,    &lSerialNumber);
+  spcm_dwGetParam_i32 (card->hCard, SPC_FNCTYPE,        &lFncType);
 
-    switch (lFncType)
-        {
-        case SPCM_TYPE_AI:  
-            printf ("Found: %s sn %05d\n", szTypeToName (lCardType), lSerialNumber);
-            break;
+  switch (lFncType)
+    {
+    case SPCM_TYPE_AI:  
+      printf ("Found: %s sn %05d\n", szTypeToName (lCardType), lSerialNumber);
+      break;
 
-        default:
-            printf ("Card: %s sn %05d not supported. \n", szTypeToName (lCardType), lSerialNumber);            
-            exit(1);
-        }
+    default:
+      printf ("Card: %s sn %05d not supported. \n", szTypeToName (lCardType), lSerialNumber);            
+      exit(1);
+    }
 
 
-    // do a simple standard setup
-    // always do two channels
-    spcm_dwSetParam_i32 (card->hCard, SPC_CHENABLE,       set->channel_mask);                     // just 1 channel enabled
-    spcm_dwSetParam_i32 (card->hCard, SPC_PRETRIGGER,     1024);                  // 1k of pretrigger data at start of FIFO mode
-    spcm_dwSetParam_i32 (card->hCard, SPC_CARDMODE,       SPC_REC_FIFO_SINGLE);   // single FIFO mode
-    spcm_dwSetParam_i32 (card->hCard, SPC_TIMEOUT,        5000);                 // timeout 5 s
-    spcm_dwSetParam_i32 (card->hCard, SPC_TRIG_ORMASK,    SPC_TMASK_SOFTWARE);    // trigger set to software
-    spcm_dwSetParam_i32 (card->hCard, SPC_TRIG_ANDMASK,   0);                     // ...
-    if (set->ext_clock_mode) 
-      spcm_dwSetParam_i32 (card->hCard, SPC_CLOCKMODE,      SPC_CM_EXTREFCLOCK);
-    else
-      spcm_dwSetParam_i32 (card->hCard, SPC_CLOCKMODE,      SPC_CM_INTPLL);         // clock mode internal PLL
+  // do a simple standard setup
+  // always do two channels
+  spcm_dwSetParam_i32 (card->hCard, SPC_CHENABLE,       set->channel_mask);                     // just 1 channel enabled
+  spcm_dwSetParam_i32 (card->hCard, SPC_PRETRIGGER,     1024);                  // 1k of pretrigger data at start of FIFO mode
+  spcm_dwSetParam_i32 (card->hCard, SPC_CARDMODE,       SPC_REC_FIFO_SINGLE);   // single FIFO mode
+  spcm_dwSetParam_i32 (card->hCard, SPC_TIMEOUT,        5000);                 // timeout 5 s
+  spcm_dwSetParam_i32 (card->hCard, SPC_TRIG_ORMASK,    SPC_TMASK_SOFTWARE);    // trigger set to software
+  spcm_dwSetParam_i32 (card->hCard, SPC_TRIG_ANDMASK,   0);                     // ...
+  if (set->ext_clock_mode) 
+    spcm_dwSetParam_i32 (card->hCard, SPC_CLOCKMODE,      SPC_CM_EXTREFCLOCK);
+  else
+    spcm_dwSetParam_i32 (card->hCard, SPC_CLOCKMODE,      SPC_CM_INTPLL);         // clock mode internal PLL
 
-    spcm_dwSetParam_i64 (card->hCard, SPC_REFERENCECLOCK, (long long int)(set->sample_rate));
-    spcm_dwSetParam_i64 (card->hCard, SPC_SAMPLERATE, (long long int)(set->sample_rate));
+  spcm_dwSetParam_i64 (card->hCard, SPC_REFERENCECLOCK, (long long int)(set->sample_rate));
+  spcm_dwSetParam_i64 (card->hCard, SPC_SAMPLERATE, (long long int)(set->sample_rate));
 
-    spcm_dwSetParam_i32 (card->hCard, SPC_CLOCKOUT,       0);                     // no clock output
+  spcm_dwSetParam_i32 (card->hCard, SPC_CLOCKOUT,       0);                     // no clock output
 
-    long long int srate;
-    spcm_dwGetParam_i64 (card->hCard, SPC_SAMPLERATE, &srate);
-    printf ("Sampling rate set to %.1lf MHz\n", srate/1000000.);
-    printf ("Allocating digitizer buffer...\n");
-    /// now set the memory
-    card->two_channel = (set->channel_mask==3);
-    card->lNotifySize = set->fft_size*(1+card->two_channel);
-    card->lBufferSize = card->lNotifySize*set->buf_mult;
+  long long int srate;
+  spcm_dwGetParam_i64 (card->hCard, SPC_SAMPLERATE, &srate);
+  printf ("Sampling rate set to %.1lf MHz\n", srate/1000000.);
+  } else {
+    printf (" Not using real card, simulating...\n");
+  }
+  printf ("Allocating digitizer buffer...\n");
+  /// now set the memory
+  card->two_channel = (set->channel_mask==3);
+  card->lNotifySize = set->fft_size*(1+card->two_channel);
+  card->lBufferSize = card->lNotifySize*set->buf_mult;
     
-    /// alocate buffer
-    card->pnData = (int16*) pvAllocMemPageAligned ((uint64) card->lBufferSize);
-    if (!card->pnData)
-        {
-        printf ("memory allocation failed\n");
-        spcm_vClose (card->hCard);
-        exit(1);
-        }
-    // define transfer
-    spcm_dwDefTransfer_i64 (card->hCard, SPCM_BUF_DATA, SPCM_DIR_CARDTOPC,
-			    card->lNotifySize, card->pnData, 0, card->lBufferSize);
-    printf ("Digitizer card and buffer ready.\n");
+  /// alocate buffer
+  card->pnData = (int16*) pvAllocMemPageAligned ((uint64) card->lBufferSize);
+  if (!card->pnData)
+    {
+      printf ("memory allocation failed\n");
+      spcm_vClose (card->hCard);
+      exit(1);
+    }
+
+  if (!set->simulate_digitizer) {
+  // define transfer
+  spcm_dwDefTransfer_i64 (card->hCard, SPCM_BUF_DATA, SPCM_DIR_CARDTOPC,
+			  card->lNotifySize, card->pnData, 0, card->lBufferSize);
+  } else {
+    // Filling buffer
+    printf ("Filling Fake buffer...\n");
+    int8_t ch1lu[64], ch2lu[64];
+    for(int i=0; i<64; i++) {
+      ch1lu[i]=int(20*cos(2*M_PI*i/64));
+      ch2lu[i]=i-32;
+    }
+    int i=0;
+    int32_t s=card->lBufferSize;
+    int8_t *data=(int8_t*) card->pnData;
+    printf ("buffer size=%i\n",s);
+    for (int32_t k=0; k<s-1; k+=2) {
+      data[k]=ch1lu[i];
+      data[k+1]=ch2lu[i];
+      i+=1;
+      if (i==64) i=0;
+    }
+  }
+ 
+  printf ("Digitizer card and buffer ready.\n");
 
 }
 

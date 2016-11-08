@@ -48,7 +48,7 @@ int main(int argc,char **argv)
   //work
   digiWorkLoop(&dcard, &gcard, &settings);
   //shutdown
-  digiCardCleanUp(&dcard);
+  digiCardCleanUp(&dcard, &settings);
 
   return 0;
 }

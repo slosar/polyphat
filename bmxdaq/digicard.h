@@ -36,4 +36,4 @@ void digiCardInit (DIGICARD *card, SETTINGS *set);
 void  digiWorkLoop(DIGICARD *card, GPUCARD *gcard, SETTINGS *set);
 
 //shutdown
-void digiCardCleanUp(DIGICARD *card);
+void digiCardCleanUp(DIGICARD *card, SETTINGS *set);

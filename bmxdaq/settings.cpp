@@ -54,6 +54,8 @@ void init_settings(SETTINGS *s, char* fname) {
 	     s->sample_rate=atof(s2)*1e6;
 	   else if(!strcmp(s1,"FFT_power="))
 	     s->fft_size = ( 1 << atoi(s2));
+	   else if(!strcmp(s1,"buf_mult="))
+	     s->buf_mult = ( 1 << atoi(s2));
 	   else if(!strcmp(s1,"nu_min="))
 	     s->nu_min=atof(s2)*1e6;
 	   else if(!strcmp(s1,"nu_max=")) {
@@ -93,6 +95,7 @@ void print_settings(SETTINGS *s) {
   printf ("Nu min: %5.3g MHz\n", s->nu_min/1e6);
   printf ("Nu max: %5.3g MHz\n", s->nu_max/1e6);
   printf ("FFT avg block: %i\n", s->fft_avg);
+  printf ("Full number of PS bins: %g\n",s->fft_size/2/s->fft_avg);
   printf ("Channel mask: %lu\n", s->channel_mask);
   printf ("ADC range: %imV\n", s->ADC_range);
   printf ("External clock mode: %i\n", s->ext_clock_mode);

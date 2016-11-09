@@ -154,7 +154,7 @@ float deltaT (timespec t1,timespec t2) {
 	  + ( t2.tv_nsec - t1.tv_nsec )/ 1e9;
 }
 
-void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set) {
+void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set, WRITER *w) {
 
   printf ("\n\nStarting main loop\n");
   printf ("==========================\n");
@@ -206,7 +206,7 @@ void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set) {
 	double accum = deltaT(timeStart, timeNow);
 	printf("Time: %fs;  digitizer buffer fill %i/1000 \n", accum, fill);
 	int8_t* bufstart=((int8_t*)dc->pnData+lPCPos);
-	gpuProcessBuffer(gc,bufstart);
+	gpuProcessBuffer(gc,bufstart,w);
 	
 	// check for esape = abort
 	if (bKbhit ())

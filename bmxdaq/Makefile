@@ -15,8 +15,8 @@ SPCM_INCLUDE=-I$(SPCM_DIR)
 SPCM_OBJ=$(SPCM_DIR)/spcm_examples/c_cpp//common/ostools/spcm_ostools_linux.o
 
 
-HEADERFILES=digicard.h settings.h gpucard.h
-SOURCES=main.cpp settings.cpp digicard.cpp 
+HEADERFILES=settings.h digicard.h  gpucard.h writer.h
+SOURCES=main.cpp settings.cpp digicard.cpp  writer.cpp
 CUDASOURCES=gpucard.cu
 OBJS=$(SOURCES:.cpp=.o) $(CUDASOURCES:.cu=.o) 
 

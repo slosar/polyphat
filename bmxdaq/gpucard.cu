@@ -184,7 +184,7 @@ void printTiming(GPUCARD *gc, int i) {
   printf ("\n");
 }
 
-bool gpuProcessBuffer(GPUCARD *gc, int8_t *buf) {
+bool gpuProcessBuffer(GPUCARD *gc, int8_t *buf, WRITER *wr) {
   // pointers and vars
   uint8_t** cbuf=(uint8_t**)(gc->cbuf);
   cufftReal** cfbuf=(cufftReal**)(gc->cfbuf);
@@ -235,7 +235,8 @@ bool gpuProcessBuffer(GPUCARD *gc, int8_t *buf) {
     cudaEventRecord(eDoneCopyBack[0], 0);
     cudaThreadSynchronize();
     printTiming(gc,0);
-  } else {
+    writerWritePS(wr,gc->outps);
+ } else {
     // streamed version
     printf ("Streamed version not ready.\n");
     exit(1);

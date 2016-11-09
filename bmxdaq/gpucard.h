@@ -9,7 +9,7 @@ THIS IS A COMPLETE PLACEHOLDER!
 
 #include "stdint.h"
 #include "settings.h"
-
+#include "writer.h"
 
 struct GPUCARD {
   void **cbuf; // pointer to pointers of GPU sample buffer
@@ -36,5 +36,5 @@ struct GPUCARD {
 
 extern "C" {
   void gpuCardInit (GPUCARD *gcard, SETTINGS *set);
-  bool gpuProcessBuffer(GPUCARD *gcard, int8_t *buf);
+  bool gpuProcessBuffer(GPUCARD *gcard, int8_t *buf, WRITER *w);
 }

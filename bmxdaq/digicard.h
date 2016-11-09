@@ -2,6 +2,7 @@
 
 #include "settings.h"
 #include "gpucard.h"
+#include "writer.h"
 #include "spcm_examples/c_cpp/c_header/dlltyp.h"
 #include "spcm_examples/c_cpp/c_header/regs.h"
 #include "spcm_examples/c_cpp/c_header/spcerr.h"
@@ -33,7 +34,7 @@ struct DIGICARD {
 void digiCardInit (DIGICARD *card, SETTINGS *set);
 
 //main worker loop
-void  digiWorkLoop(DIGICARD *card, GPUCARD *gcard, SETTINGS *set);
+void  digiWorkLoop(DIGICARD *card, GPUCARD *gcard, SETTINGS *set, WRITER *w);
 
 //shutdown
 void digiCardCleanUp(DIGICARD *card, SETTINGS *set);

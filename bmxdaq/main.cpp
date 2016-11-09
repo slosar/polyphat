@@ -31,6 +31,7 @@ int main(int argc,char **argv)
 { 
   char                szBuffer[1024];     // a character buffer for any messages
   SETTINGS settings;                      // settings
+  WRITER writer;                          // writer module
   DIGICARD dcard;                         // digitizer CARD
   GPUCARD gcard;                          // GPU card
   
@@ -43,13 +44,14 @@ int main(int argc,char **argv)
 
   // intialize
   print_settings(&settings);
+  writerInit(&writer,&settings);
   digiCardInit(&dcard,&settings);
   gpuCardInit(&gcard,&settings);
   //work
-  digiWorkLoop(&dcard, &gcard, &settings);
+  digiWorkLoop(&dcard, &gcard, &settings, &writer);
   //shutdown
   digiCardCleanUp(&dcard, &settings);
-
+  writerCleanUp(&writer);
   return 0;
 }
 

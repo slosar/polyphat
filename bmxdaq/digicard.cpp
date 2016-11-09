@@ -130,8 +130,8 @@ void digiCardInit (DIGICARD *card, SETTINGS *set) {
     printf ("Filling Fake buffer...\n");
     int8_t ch1lu[64], ch2lu[64];
     for(int i=0; i<64; i++) {
-      ch1lu[i]=int(20*cos(2*M_PI*i/64));
-      ch2lu[i]=i-32;
+      ch1lu[i]=int(20*cos(2*2*M_PI*i/64)+10*sin(2*M_PI*i/64));
+      ch2lu[i]=-31+i;
     }
     int i=0;
     int32_t s=card->lBufferSize;
@@ -176,6 +176,7 @@ void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set, WRITER *w) {
   int sim_ofs=0;
   clock_gettime(CLOCK_REALTIME, &timeStart);
   tSim=timeStart;
+  fill=69;
 
   while (1) {
 
@@ -185,10 +186,18 @@ void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set, WRITER *w) {
       lPCPos = dc->lNotifySize*sim_ofs;
       sim_ofs = (sim_ofs+1)%set->buf_mult;
       lAvailUser=dc->lNotifySize;
-      fill=69;
-      do {
-	clock_gettime(CLOCK_REALTIME, &t1);
-      } while (deltaT(tSim,t1)<towait);
+
+      clock_gettime(CLOCK_REALTIME, &t1);
+      float dt=deltaT(tSim,t1);
+      printf ("Cycle taking %fs, hope for < %fs\n",dt, towait);
+      if (deltaT(tSim,t1)>towait) {
+	fill+=30;
+      } else {
+	do {
+	  clock_gettime(CLOCK_REALTIME, &t1);
+	  if (fill>69) fill-=30;
+	} while (deltaT(tSim,t1)<towait);
+      }
       tSim=t1;
     } else {
       dwError = spcm_dwSetParam_i32 (dc->hCard, SPC_M2CMD, M2CMD_DATA_WAITDMA);
@@ -204,14 +213,18 @@ void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set, WRITER *w) {
       {
 	clock_gettime(CLOCK_REALTIME, &timeNow);
 	double accum = deltaT(timeStart, timeNow);
-	printf("Time: %fs;  digitizer buffer fill %i/1000 \n", accum, fill);
+	printf("Time: %fs; Status:%i; Pos:%08x; digitizer buffer fill %i/1000 \n", 
+	       accum, lStatus, lPCPos,fill);
+
+
 	int8_t* bufstart=((int8_t*)dc->pnData+lPCPos);
-	gpuProcessBuffer(gc,bufstart,w);
-	
-	// check for esape = abort
-	if (bKbhit ())
-	  if (cGetch () == 27)
-	    break;
+	if (set->dont_process) 
+	  printf (" ** no GPU processing\n");
+	else
+	  gpuProcessBuffer(gc,bufstart,w);
+	// tell driver we're done
+	if (!set->simulate_digitizer)
+	  spcm_dwSetParam_i32 (dc->hCard, SPC_DATA_AVAIL_CARD_LEN, dc->lNotifySize);
       }
   }
     

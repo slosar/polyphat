@@ -27,6 +27,7 @@ void init_settings(SETTINGS *s, char* fname) {
     s->cuda_streams=4;
     s->cuda_threads=1024;
     s->simulate_digitizer=0;
+    s->dont_process=0;
 
     if (fname) {
          FILE *fi;
@@ -73,6 +74,8 @@ void init_settings(SETTINGS *s, char* fname) {
 	     s->cuda_threads=atoi(s2);
 	   else if(!strcmp(s1,"simulate_digitizer="))
 	     s->simulate_digitizer=atoi(s2);
+	   else if(!strcmp(s1,"dont_process="))
+	     s->dont_process=atoi(s2);
 	   else if(!strcmp(s1,"fft_avg="))
 	     s->fft_avg=atoi(s2);
 	   else {

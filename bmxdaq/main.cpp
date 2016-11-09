@@ -46,7 +46,7 @@ int main(int argc,char **argv)
   print_settings(&settings);
   writerInit(&writer,&settings);
   digiCardInit(&dcard,&settings);
-  gpuCardInit(&gcard,&settings);
+  if (!settings.dont_process) gpuCardInit(&gcard,&settings);
   //work
   digiWorkLoop(&dcard, &gcard, &settings, &writer);
   //shutdown

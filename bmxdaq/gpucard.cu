@@ -14,7 +14,7 @@ CUDA PART
 #include <stdio.h>
 #include "math.h"
 
-#define FLOATIZE_X 8
+#define FLOATIZE_X 2
 
 
 static void HandleError( cudaError_t err,
@@ -113,16 +113,16 @@ void gpuCardInit (GPUCARD *gc, SETTINGS *set) {
  * CUDA Kernel byte->float, 1 channel version
  *
  */
-__global__ void floatize_1chan(uint8_t* sample, cufftReal* fsample)  {
+__global__ void floatize_1chan(int8_t* sample, cufftReal* fsample)  {
     int i = FLOATIZE_X*(blockDim.x * blockIdx.x + threadIdx.x);
     for (int j=0; j<FLOATIZE_X; j++) fsample[i+j]=float(sample[i+j]);
 }
 
-__global__ void floatize_2chan(uint8_t* sample, cufftReal* fsample1, cufftReal* fsample2)  {
+__global__ void floatize_2chan(int8_t* sample, cufftReal* fsample1, cufftReal* fsample2)  {
     int i = FLOATIZE_X*(blockDim.x * blockIdx.x + threadIdx.x);
     for (int j=0; j<FLOATIZE_X/2; j++) {
-      fsample1[i+j]=float(sample[i+2*j]);
-      fsample2[i+j]=float(sample[i+2*j+1]);
+      fsample1[i/2+j]=float(sample[i+2*j]);
+      fsample2[i/2+j]=float(sample[i+2*j+1]);
     }
 }
 
@@ -186,7 +186,7 @@ void printTiming(GPUCARD *gc, int i) {
 
 bool gpuProcessBuffer(GPUCARD *gc, int8_t *buf, WRITER *wr) {
   // pointers and vars
-  uint8_t** cbuf=(uint8_t**)(gc->cbuf);
+  int8_t** cbuf=(int8_t**)(gc->cbuf);
   cufftReal** cfbuf=(cufftReal**)(gc->cfbuf);
   cufftComplex** cfft=(cufftComplex**)(gc->cfft);
   float** coutps=(float**)(gc->coutps);
@@ -211,6 +211,7 @@ bool gpuProcessBuffer(GPUCARD *gc, int8_t *buf, WRITER *wr) {
     else 
       floatize_2chan<<<blocksPerGrid, threadsPerBlock >>>(cbuf[0],cfbuf[0],&(cfbuf[0][gc->fftsize]));
     CHK(cudaGetLastError());
+
     cudaEventRecord(eDoneFloatize[0], 0);
     int status=cufftExecR2C(gc->plan, cfbuf[0], cfft[0]);
     cudaEventRecord(eDoneFFT[0], 0);
@@ -226,8 +227,8 @@ bool gpuProcessBuffer(GPUCARD *gc, int8_t *buf, WRITER *wr) {
       // pssize+2 = transformsize+1
       // note that pssize is the full *nchan pssize
       ps_reduce<<<gc->pssize/2, 1024>>> (&cfft[0][1], coutps[0], 0, gc->fftavg);
-      //      ps_reduce<<<gc->pssize/2, 1024>>> (&cfft[0][1+(gc->fftsize/2+1)], 
-      //                                 &(coutps[0][gc->pssize/2]), 0, gc->fftavg);
+      ps_reduce<<<gc->pssize/2, 1024>>> (&cfft[0][1+(gc->fftsize/2+1)], 
+                                         &(coutps[0][gc->pssize/2]), 0, gc->fftavg);
     }
     CHK(cudaGetLastError());
     cudaEventRecord(eDonePost[0], 0);

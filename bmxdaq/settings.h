@@ -14,6 +14,8 @@ struct SETTINGS {
 
   // simulate card
   int simulate_digitizer;
+  // dont process, just transfer from digitizer
+  int dont_process;
   
   //
   uint32_t fft_size; // must be power of 2

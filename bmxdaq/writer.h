@@ -10,6 +10,7 @@ struct BMXHEADER {
   uint32_t fft_size; 
   uint32_t fft_avg; 
   float sample_rate;
+  float nu_min, nu_max;
 };
 
 struct WRITER {

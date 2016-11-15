@@ -26,6 +26,7 @@ struct GPUCARD {
   int nstreams;
   int pssize1; // size of one power spectrum (in indices)
   int pssize; // size of how many we produce
+  int ndxofs; // which offset we start averaging
   void *streams; // streams
   int fstream, bstream; // front stream (oldest running), back stream (newest runnig);
   int active_streams; // really needed just at the beginning (when 0)

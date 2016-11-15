@@ -15,10 +15,10 @@ int my_linecount(FILE *f)
 }
 
 void init_settings(SETTINGS *s, char* fname) {
-    s->sample_rate= 1.25e9;
+    s->sample_rate=1.25e9;
     s->fft_size = (1<<26);
     s->nu_min=0;
-    s->nu_max=s->sample_rate/2;
+    s->nu_max=(float)(s->sample_rate/2);
     s->fft_avg=16384;
     s->channel_mask=3; // which channels, both to start with
     s->ADC_range=1000;

@@ -32,6 +32,8 @@ void writerInit(WRITER *writer, SETTINGS *s) {
   writer->header.fft_size=s->fft_size;
   writer->header.fft_avg=s->fft_avg;
   writer->header.sample_rate=s->sample_rate;
+  writer->header.nu_min=s->nu_min;
+  writer->header.nu_max=s->nu_max;
   maybeReOpenFile(writer,true);
 }
 void writerWritePS (WRITER *writer, float* ps) {

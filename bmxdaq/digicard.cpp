@@ -222,6 +222,7 @@ void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set, WRITER *w) {
 	  printf (" ** no GPU processing\n");
 	else
 	  gpuProcessBuffer(gc,bufstart,w);
+
 	// tell driver we're done
 	if (!set->simulate_digitizer)
 	  spcm_dwSetParam_i32 (dc->hCard, SPC_DATA_AVAIL_CARD_LEN, dc->lNotifySize);

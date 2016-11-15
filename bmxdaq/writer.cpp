@@ -5,7 +5,7 @@ void writerInit(WRITER *writer, SETTINGS *s) {
   printf ("\n\nInitializing digitizer\n");
   printf ("==========================\n");
   strcpy(writer->fname,"output.bin");
-  writer->pslen=s->fft_size/2/s->fft_avg*(1+(s->channel_mask==3));
+  writer->pslen=s->fft_size/2/s->fft_avg*(1+3*(s->channel_mask==3));
   printf ("Writing to: %s\n", writer->fname);
   printf ("Record size: %i\n", writer->pslen);
   BMXheader h;

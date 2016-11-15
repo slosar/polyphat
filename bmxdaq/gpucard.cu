@@ -46,7 +46,12 @@ void gpuCardInit (GPUCARD *gc, SETTINGS *set) {
   uint32_t bufsize=gc->bufsize=set->fft_size*nchan;
   uint32_t transform_size=(set->fft_size/2+1)*nchan;
   gc->fftavg=set->fft_avg;
-  gc->pssize=set->fft_size/2/set->fft_avg*nchan;
+  // one power spectrum
+  gc->pssize1=set->fft_size/2/set->fft_avg;
+  if (nchan==2)
+    gc->pssize=gc->pssize1*4; // for other and two crosses
+  else
+    gc->pssize=gc->pssize1; // just one power spectrum
   for (int i=0;i<Nb;i++) {
     uint8_t** cbuf=(uint8_t**)&(gc->cbuf[i]);
     CHK(cudaMalloc(cbuf,bufsize));
@@ -162,6 +167,47 @@ __global__ void ps_reduce(cufftComplex *ffts, float* output_ps, size_t istart, s
 }
   
 
+
+/** 
+ * CROSS power spectrum reducer
+ **/
+__global__ void ps_X_reduce(cufftComplex *fftsA, cufftComplex *fftsB, 
+			    float* output_ps_real, float* output_ps_imag, size_t istart, size_t avgsize) {
+  int tid=threadIdx.x; // thread
+  int bl=blockIdx.x; // block, ps bin #
+  int nth=blockDim.x; //nthreads
+  __shared__ float workR[1024];
+  __shared__ float workI[1024];
+  //global pos
+  size_t pos=istart+bl*avgsize;
+  size_t pose=pos+avgsize;
+  pos+=tid;
+  workR[tid]=0;
+  workI[tid]=0;
+  while (pos<pose) {
+    workR[tid]+=fftsA[pos].x*fftsB[pos].x+fftsA[pos].y*fftsB[pos].y;
+    workI[tid]+=fftsA[pos].x*fftsB[pos].y-fftsA[pos].y*fftsB[pos].x;
+    pos+=nth;
+  }
+  // now do the tree reduce.
+  int csum=nth/2;
+  while (csum>0) {
+    __syncthreads();
+    if (tid<csum) {
+      workR[tid]+=workR[tid+csum];
+      workI[tid]+=workI[tid+csum];
+    }
+    csum/=2;
+  }
+  if (tid==0) {
+    output_ps_real[bl]=workR[0];
+    output_ps_imag[bl]=workI[0];
+  }
+}
+  
+
+
+
 void printDt (cudaEvent_t cstart, cudaEvent_t cstop) {
   float gpu_time;
   CHK(cudaEventElapsedTime(&gpu_time, cstart, cstop));
@@ -226,9 +272,12 @@ bool gpuProcessBuffer(GPUCARD *gc, int8_t *buf, WRITER *wr) {
       // note we need to take into account the tricky N/2+1 FFT size while we do N/2 binning
       // pssize+2 = transformsize+1
       // note that pssize is the full *nchan pssize
-      ps_reduce<<<gc->pssize/2, 1024>>> (&cfft[0][1], coutps[0], 0, gc->fftavg);
-      ps_reduce<<<gc->pssize/2, 1024>>> (&cfft[0][1+(gc->fftsize/2+1)], 
-                                         &(coutps[0][gc->pssize/2]), 0, gc->fftavg);
+      ps_reduce<<<gc->pssize1, 1024>>> (&cfft[0][1], coutps[0], 0, gc->fftavg);
+      ps_reduce<<<gc->pssize1, 1024>>> (&cfft[0][1+(gc->fftsize/2+1)], 
+                                         &(coutps[0][gc->pssize1]), 0, gc->fftavg);
+      ps_X_reduce<<<gc->pssize1, 1024>>> (&cfft[0][1], &cfft[0][1+(gc->fftsize/2+1)], 
+					  &(coutps[0][2*gc->pssize1]), &(coutps[0][3*gc->pssize1]),
+					  0, gc->fftavg);
     }
     CHK(cudaGetLastError());
     cudaEventRecord(eDonePost[0], 0);

@@ -24,7 +24,8 @@ struct GPUCARD {
   int threads; // threads to use
   int plan;
   int nstreams;
-  int pssize;
+  int pssize1; // size of one power spectrum (in indices)
+  int pssize; // size of how many we produce
   void *streams; // streams
   int fstream, bstream; // front stream (oldest running), back stream (newest runnig);
   int active_streams; // really needed just at the beginning (when 0)

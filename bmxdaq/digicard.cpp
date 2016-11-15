@@ -172,24 +172,21 @@ void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set, WRITER *w) {
   // check for error
   if (dwError != ERR_OK) printErrorDie("Cannot start FIFO\n",dc,set);
 
-  struct timespec timeStart, timeNow, tSim;
+  struct timespec timeStart, timeNow, tSim, t1;
   int sim_ofs=0;
   clock_gettime(CLOCK_REALTIME, &timeStart);
   tSim=timeStart;
   fill=69;
+  float towait=set->fft_size/set->sample_rate;
 
   while (1) {
-
+    clock_gettime(CLOCK_REALTIME, &t1);
+    float dt=deltaT(tSim,t1);
+    printf ("Cycle taking %fs, hope for < %fs\n",dt, towait);
     if (set->simulate_digitizer) {
-      struct timespec t1;
-      float towait=set->fft_size/set->sample_rate;
       lPCPos = dc->lNotifySize*sim_ofs;
       sim_ofs = (sim_ofs+1)%set->buf_mult;
       lAvailUser=dc->lNotifySize;
-
-      clock_gettime(CLOCK_REALTIME, &t1);
-      float dt=deltaT(tSim,t1);
-      printf ("Cycle taking %fs, hope for < %fs\n",dt, towait);
       if (deltaT(tSim,t1)>towait) {
 	fill+=30;
       } else {
@@ -198,7 +195,6 @@ void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set, WRITER *w) {
 	  if (fill>69) fill-=30;
 	} while (deltaT(tSim,t1)<towait);
       }
-      tSim=t1;
     } else {
       dwError = spcm_dwSetParam_i32 (dc->hCard, SPC_M2CMD, M2CMD_DATA_WAITDMA);
       if (dwError != ERR_OK)
@@ -208,7 +204,7 @@ void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set, WRITER *w) {
       spcm_dwGetParam_i32 (dc->hCard, SPC_DATA_AVAIL_USER_POS,  &lPCPos);
       spcm_dwGetParam_i32 (dc->hCard, SPC_FILLSIZEPROMILLE,  &fill);
     }
-
+    clock_gettime(CLOCK_REALTIME, &tSim);
     if (lAvailUser >= dc->lNotifySize)
       {
 	clock_gettime(CLOCK_REALTIME, &timeNow);
@@ -226,6 +222,7 @@ void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set, WRITER *w) {
 	// tell driver we're done
 	if (!set->simulate_digitizer)
 	  spcm_dwSetParam_i32 (dc->hCard, SPC_DATA_AVAIL_CARD_LEN, dc->lNotifySize);
+	printf("\033[3A");
       }
   }
     

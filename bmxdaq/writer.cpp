@@ -29,6 +29,9 @@ void writerInit(WRITER *writer, SETTINGS *s) {
   printf ("Record size: %i\n", writer->pslen);
   writer->header.nChannels=1+s->channel_mask;
   writer->header.nPSbins=s->fft_size/2/s->fft_avg;
+  writer->header.fft_size=s->fft_size;
+  writer->header.fft_avg=s->fft_avg;
+  writer->header.sample_rate=s->sample_rate;
   maybeReOpenFile(writer,true);
 }
 void writerWritePS (WRITER *writer, float* ps) {

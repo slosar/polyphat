@@ -100,12 +100,22 @@ void digiCardInit (DIGICARD *card, SETTINGS *set) {
 
   spcm_dwSetParam_i32 (card->hCard, SPC_CLOCKOUT,       0);                     // no clock output
 
+  spcm_dwSetParam_i32 (card->hCard, SPC_AMP0,  set->ADC_range  );
+  spcm_dwSetParam_i32 (card->hCard, SPC_AMP1,  set->ADC_range  );
+  int32_t range1, range2;
+  spcm_dwGetParam_i32 (card->hCard, SPC_AMP0,  &range1 );
+  spcm_dwGetParam_i32 (card->hCard, SPC_AMP1,  &range2 );
+  printf ("ADC ranges for CH1/2: %i/%i mV\n",range1,range2);
   long long int srate;
   spcm_dwGetParam_i64 (card->hCard, SPC_SAMPLERATE, &srate);
   printf ("Sampling rate set to %.1lf MHz\n", srate/1000000.);
   } else {
     printf ("**Not using real card, simulating...**\n");
   }
+
+  
+
+
   printf ("Allocating digitizer buffer...\n");
   /// now set the memory
   card->two_channel = (set->channel_mask==3);
@@ -209,20 +219,20 @@ void  digiWorkLoop(DIGICARD *dc, GPUCARD *gc, SETTINGS *set, WRITER *w) {
       {
 	clock_gettime(CLOCK_REALTIME, &timeNow);
 	double accum = deltaT(timeStart, timeNow);
-	printf("Time: %fs; Status:%i; Pos:%08x; digitizer buffer fill %i/1000 \n", 
+	printf("Time: %fs; Status:%i; Pos:%08x; digitizer buffer fill %i/1000   \n", 
 	       accum, lStatus, lPCPos,fill);
 
 
 	int8_t* bufstart=((int8_t*)dc->pnData+lPCPos);
 	if (set->dont_process) 
-	  printf (" ** no GPU processing\n");
+	  printf (" ** no GPU processing\n\n");
 	else
 	  gpuProcessBuffer(gc,bufstart,w);
 
 	// tell driver we're done
 	if (!set->simulate_digitizer)
 	  spcm_dwSetParam_i32 (dc->hCard, SPC_DATA_AVAIL_CARD_LEN, dc->lNotifySize);
-	printf("\033[3A");
+	printf("\033[4A");
       }
   }
     

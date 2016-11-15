@@ -227,7 +227,7 @@ void printTiming(GPUCARD *gc, int i) {
   printDt (eDoneFloatize[i], eDoneFFT[i]);
   printDt (eDoneFFT[i], eDonePost[i]);
   printDt (eDonePost[i], eDoneCopyBack[i]);
-  printf ("\n");
+  printf ("  \n");
 }
 
 bool gpuProcessBuffer(GPUCARD *gc, int8_t *buf, WRITER *wr) {
@@ -285,6 +285,20 @@ bool gpuProcessBuffer(GPUCARD *gc, int8_t *buf, WRITER *wr) {
     cudaEventRecord(eDoneCopyBack[0], 0);
     cudaThreadSynchronize();
     printTiming(gc,0);
+    // now find some statistic over subsamples of samples
+    uint32_t bs=gc->bufsize;
+    uint32_t step=gc->bufsize/(32768);
+    float fac=bs/step;
+    float m1=0.,m2=0.,v1=0.,v2=0.;
+    for (int i=0; i<bs; i+=step) {
+      float n=buf[i];
+      m1+=n; v1+=n*n;
+      n=buf[i+1];
+      m2+=n; v2+=n*n;
+    }
+    m1/=fac; v1=sqrt(v1/fac-m1*m1);
+    m2/=fac; v2=sqrt(v2/fac-m1*m1);
+    printf ("CH1 min/rms: %f %f   CH2 min/rms: %f %f   \n",m1,v1,m2,v2);
     writerWritePS(wr,gc->outps);
  } else {
     // streamed version

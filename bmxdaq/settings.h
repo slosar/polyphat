@@ -2,6 +2,7 @@
 
 #include "stdint.h"
 
+#define MAXCHAR 512
 // modifiable settings
 struct SETTINGS {
   // basic settings
@@ -27,7 +28,9 @@ struct SETTINGS {
   int cuda_streams; // number of cuda streams
   int cuda_threads; // number of cuda threads
 
-
+  // output options
+  char output_pattern[MAXCHAR];
+  int save_every;
 };
 
 // Fixed defines

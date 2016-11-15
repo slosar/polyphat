@@ -28,7 +28,8 @@ void init_settings(SETTINGS *s, char* fname) {
     s->cuda_threads=1024;
     s->simulate_digitizer=0;
     s->dont_process=0;
-
+    s->save_every=60;
+    sprintf(s->output_pattern,"%02d%02d%02d_%02d%02d.data");
     if (fname) {
          FILE *fi;
 	 int n_lin,ii;
@@ -78,6 +79,10 @@ void init_settings(SETTINGS *s, char* fname) {
 	     s->dont_process=atoi(s2);
 	   else if(!strcmp(s1,"fft_avg="))
 	     s->fft_avg=atoi(s2);
+	   else if(!strcmp(s1,"save_every="))
+	     s->save_every=atoi(s2);
+	   else if(!strcmp(s1,"output_pattern="))
+	     strcpy(s->output_pattern,s2);
 	   else {
 	     printf("Unknown parameter %s\n",s1);
 	     exit(1);
